@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Game - {{ game.Title }}</title>
+</head>
+<body>
+  <h1>Edit Game: {{ game.Title }}</h1>
+
+  <form method="post" action="{{ url_for('edit', title=game.Title) }}">
+    <label>Title: <input type="text" name="title" value="{{ game.Title }}"></label><br>
+    <label>Publisher: <input type="text" name="publisher" value="{{ game.Publisher }}"></label><br>
+    <label>Designer: <input type="text" name="designer" value="{{ game.Designer }}"></label><br>
+    <label>Mechanics: <input type="text" name="mechanics" value="{{ game.Mechanics }}"></label><br>
+    <label>Min Players: <input type="number" name="min_players" value="{{ game.MinPlayers }}"></label><br>
+    <label>Max Players: <input type="number" name="max_players" value="{{ game.MaxPlayers }}"></label><br>
+    <label>Weight: <input type="number" step="0.1" name="weight" value="{{ game.Weight }}"></label><br>
+    <label>Expansion? 
+      <select name="is_expansion">
+        <option value="">Any</option>
+        <option value="Yes" {% if game.IsExpansion == "Yes" %}selected{% endif %}>Yes</option>
+        <option value="No" {% if game.IsExpansion == "No" %}selected{% endif %}>No</option>
+      </select>
+    </label><br>
+    <label>Notes: <input type="text" name="notes" value="{{ game.Notes }}"></label><br>
+    <input type="submit" value="Save">
+  </form>
+
+  <form method="post" action="{{ url_for('delete_game', game_id=game['ID']) }}" onsubmit="return confirm('Are you sure you want to delete this game?');">
+    <button type="submit" class="btn btn-danger">Delete Game</button>
+  </form>
+
+  <p><a href="{{ url_for('index') }}">Back to list</a></p>
+</body>
+</html>

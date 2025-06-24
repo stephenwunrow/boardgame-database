@@ -1,0 +1,11 @@
+credentials.json
+__pycache__/
+*.pyc
+.env
+boardgames.tsv
+instance/
+uploads/
+.vscode/
+.idea/
+*.db
+*.sqlite3

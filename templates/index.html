@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Board Game Collection</title>
+</head>
+<body>
+  <h1>Board Game Database</h1>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li><strong>{{ category }}:</strong> {{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <h2>Upload Game Box Image (Extract and Add)</h2>
+  <form action="/upload-image" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" required>
+    <button type="submit">Upload Image</button>
+  </form>
+
+  <h2>Add Game by Title</h2>
+  <form action="/add-by-title" method="post">
+    <input type="text" name="title" placeholder="Enter board game title" required>
+    <button type="submit">Add Game</button>
+  </form>
+
+  <h2>Search Games</h2>
+  <form action="/search" method="post">
+    <input type="text" name="title" placeholder="Title">
+    <input type="text" name="publisher" placeholder="Publisher">
+    <input type="text" name="designer" placeholder="Designer">
+    <input type="number" name="players" placeholder="e.g., 3">
+    <input type="number" step="0.1" name="weight" placeholder="Weight (e.g., 2.5)">
+    <input type="text" name="mechanics" placeholder="Mechanics">
+    <select name="is_expansion">
+      <option value="">-- Expansion? --</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    <input type="text" name="notes" placeholder="Notes">
+    </select>
+    <button type="submit">Search</button>
+  </form>
+
+  <h2>Search by Image</h2>
+  <form action="/search-by-image" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" required>
+    <button type="submit">Search from Image</button>
+  </form>
+
+  <h2>Game List</h2>
+  {% if searched %}
+    <p><a href="{{ url_for('index') }}"><button type="button">Return to Full List</button></a></p>
+  {% endif %}
+  <table border="1">
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Publisher</th>
+      <th>Designer(s)</th>
+      <th>Players</th>
+      <th>Weight</th>
+      <th>Mechanics</th>
+      <th>Expansion?</th>
+      <th>Notes</th>
+      <th>Actions</th>
+    </tr>
+    {% for game in games %}
+    <tr>
+      <td>{{ game.ID }}</td>
+      <td>{{ game.Title }}</td>
+      <td>{{ game.Publisher }}</td>
+      <td>{{ game.Designer }}</td>
+      <td>{{ game.MinPlayers }}–{{ game.MaxPlayers }}</td>
+      <td>{{ game.Weight }}</td>
+      <td>{{ game.Mechanics }}</td>
+      <td>{{ game.IsExpansion }}</td>
+      <td>{{ game.Notes }}</td>
+      <td><a href="{{ url_for('edit', title=game.Title) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
