@@ -1,7 +1,8 @@
 import os
 import csv
 import tempfile
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, redirect, url_for, flash, session
+import json
 from werkzeug.utils import secure_filename
 import requests
 import xml.etree.ElementTree as ET
@@ -167,13 +168,32 @@ def sort_games(games, sort_by):
 
 # --- Routes ---
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def index():
     download_tsv_from_gdrive()
-    games = load_tsv()
-    sort_by = request.args.get('sort_by', None)  # None means no sort, default order
-    games = sort_games(games, sort_by)
-    return render_template('index.html', games=games, sort_by=sort_by)
+    sort_by = request.args.get('sort')
+
+    if 'search_results' in session:
+        games = json.loads(session['search_results'])  # load filtered games
+        searched = True
+    else:
+        games = load_tsv()
+        searched = False
+
+    if sort_by:
+        if sort_by == 'title':
+            games.sort(key=lambda g: g['Title'].lower())
+        elif sort_by == 'weight':
+            games.sort(key=lambda g: float(g['Weight']) if g['Weight'] else 0)
+        elif sort_by == 'designer':
+            games.sort(key=lambda g: g['Designer'].lower() if g['Designer'] else '')
+        elif sort_by == 'publisher':
+            games.sort(key=lambda g: g['Publisher'].lower() if g['Publisher'] else '')
+        elif sort_by == 'notes':
+            games.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '')
+
+    return render_template('index.html', games=games, searched=searched, sort_by=sort_by)
+
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
@@ -247,7 +267,11 @@ def add_by_title():
 def search():
     download_tsv_from_gdrive()
     games = load_tsv()
+
     if request.method == 'POST':
+        # Get sort param from query or default None
+        sort_by = request.args.get('sort') or None
+
         # Get all search fields, default empty strings
         title = request.form.get('title', '').lower()
         publisher = request.form.get('publisher', '').lower()
@@ -292,15 +316,28 @@ def search():
             return True
 
         filtered = [g for g in games if matches(g)]
-        sort_by = request.form.get('sort_by', None)
-        filtered = sort_games(filtered, sort_by)
-        return render_template('index.html', games=filtered, sort_by=sort_by)
+
+        # Sort filtered if sort_by present
+        if sort_by:
+            filtered = sort_games(filtered, sort_by)
+
+        # Store filtered results in session for consistency
+        session['search_results'] = json.dumps(filtered)
+
+        return render_template('index.html', games=filtered, sort_by=sort_by, searched=True)
 
     # GET request shows all games
-    sort_by = request.args.get('sort_by', None)
-    games = sort_games(games, sort_by)
-    return render_template('index.html', games=games, sort_by=sort_by)
+    sort_by = request.args.get('sort')
+    if 'search_results' in session:
+        games = json.loads(session['search_results'])
+        searched = True
+    else:
+        searched = False
 
+    if sort_by:
+        games = sort_games(games, sort_by)
+
+    return render_template('index.html', games=games, sort_by=sort_by, searched=searched)
 
 @app.route('/edit/<title>', methods=['GET', 'POST'])
 def edit(title):
@@ -340,6 +377,11 @@ def delete_game(game_id):
 
     return redirect(url_for('index'))
 
+@app.route('/clear')
+def clear():
+    session.pop('search_results', None)
+    return redirect(url_for('index'))
+
 @app.route('/search-by-image', methods=['POST'])
 def search_by_image():
     if 'image' not in request.files:
@@ -370,7 +412,7 @@ def search_by_image():
     if not results:
         flash("No matching games found for detected titles", "info")
 
-    return render_template('index.html', games=results)
+    return render_template('index.html', games=results, searched=True)
 
 if __name__ == '__main__':
     app.run(debug=True)

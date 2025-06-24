@@ -55,17 +55,17 @@
 
   <h2>Game List</h2>
   {% if searched %}
-    <p><a href="{{ url_for('index') }}"><button type="button">Return to Full List</button></a></p>
+    <p><a href="{{ url_for('clear') }}"><button type="button">Return to Full List</button></a></p>
   {% endif %}
   <table border="1">
     <tr>
-      <th><a href="{{ url_for(request.endpoint, sort_by='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for(request.endpoint, sort_by='publisher') }}">Publisher{% if sort_by == 'publisher' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for(request.endpoint, sort_by='designer') }}">Designer(s){% if sort_by == 'designer' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='publisher') }}">Publisher{% if sort_by == 'publisher' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='designer') }}">Designer(s){% if sort_by == 'designer' %} ▲{% endif %}</a></th>
       <th>Players</th>
-      <th><a href="{{ url_for(request.endpoint, sort_by='weight') }}">Weight{% if sort_by == 'weight' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='weight') }}">Weight{% if sort_by == 'weight' %} ▲{% endif %}</a></th>
       <th>Mechanics</th>
-      <th><a href="{{ url_for(request.endpoint, sort_by='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
       <th>Expansion?</th>
       <th>Actions</th>
     </tr>
