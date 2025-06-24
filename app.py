@@ -42,22 +42,40 @@ def extract_titles_from_image(image_path):
     with open(image_path, "rb") as f:
         image_bytes = f.read()
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-lite",  # or gemini-2.5-flash if that's what you're using
-        contents=[
-            types.Part.from_bytes(
-                data=image_bytes,
-                mime_type="image/jpeg"
-            ),
-            "What are the titles of all the board games in this image? Return the titles only, with no other text, separated by line breaks."
-        ]
-    )
+    def try_model(model_name):
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type="image/jpeg"
+                ),
+                "What are the titles of all the board games in this image? Return the titles only, with no other text, separated by line breaks."
+            ]
+        )
+        return response
 
-    # Parse and return titles from response
+    try:
+        response = try_model("gemini-2.5-flash")
+        flash("Used model: gemini-2.5-flash", "info")
+    except Exception as e:
+        flash(f"gemini-2.5-flash failed with error: {e}. Trying gemini-2.0-flash...", "warning")
+        try:
+            response = try_model("gemini-2.0-flash")
+            flash("Used model: gemini-2.0-flash", "info")
+        except Exception as e2:
+            flash(f"Both models failed. Last error: {e2}", "error")
+            return []
+
     titles_text = response.text.strip()
     titles = [line.strip() for line in titles_text.split('\n') if line.strip()]
-    print(titles)
+    if titles:
+        flash(f"Gemini extracted {len(titles)} title(s): " + ", ".join(titles), "info")
+    else:
+        flash("Gemini returned no titles from the image.", "warning")
+
     return titles
+
 
 
 def search_bgg_game(title):
