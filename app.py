@@ -14,6 +14,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "devkey")
+SITE_PASSWORD = os.getenv("SITE_PASSWORD", "letmein")
 
 # Temporary local TSV file - sync to Google Drive for persistence
 TSV_FILE = 'boardgames.tsv'
@@ -186,8 +187,27 @@ def sort_games(games, sort_by):
 
 # --- Routes ---
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form['password'] == SITE_PASSWORD:
+            session['logged_in'] = True
+            flash("Logged in successfully.", "success")
+            return redirect(url_for('index'))
+        else:
+            flash("Incorrect password.", "error")
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    flash("Logged out.", "info")
+    return redirect(url_for('login'))
+
 @app.route('/')
 def index():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     download_tsv_from_gdrive()
     sort_by = request.args.get('sort')
 
@@ -215,6 +235,8 @@ def index():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     if 'image' not in request.files:
         flash("No image uploaded", "error")
         return redirect(url_for('index'))
@@ -256,6 +278,8 @@ def upload_image():
 
 @app.route('/add-by-title', methods=['POST'])
 def add_by_title():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     title = request.form.get('title')
     if not title:
         flash("Please enter a game title", "error")
@@ -359,6 +383,8 @@ def search():
 
 @app.route('/edit/<title>', methods=['GET', 'POST'])
 def edit(title):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     download_tsv_from_gdrive()
     games = load_tsv()
     game = next((g for g in games if g['Title'].lower() == title.lower()), None)
@@ -384,6 +410,8 @@ def edit(title):
 
 @app.route('/delete/<game_id>', methods=['POST'])
 def delete_game(game_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     games = load_tsv()
     updated_games = [g for g in games if str(g.get('ID')) != str(game_id)]
 
@@ -402,6 +430,8 @@ def clear():
 
 @app.route('/search-by-image', methods=['POST'])
 def search_by_image():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     if 'image' not in request.files:
         flash("No image uploaded", "error")
         return redirect(url_for('index'))
