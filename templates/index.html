@@ -59,28 +59,26 @@
   {% endif %}
   <table border="1">
     <tr>
-      <th>ID</th>
-      <th>Title</th>
-      <th>Publisher</th>
-      <th>Designer(s)</th>
+      <th><a href="{{ url_for(request.endpoint, sort_by='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for(request.endpoint, sort_by='publisher') }}">Publisher{% if sort_by == 'publisher' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for(request.endpoint, sort_by='designer') }}">Designer(s){% if sort_by == 'designer' %} ▲{% endif %}</a></th>
       <th>Players</th>
-      <th>Weight</th>
+      <th><a href="{{ url_for(request.endpoint, sort_by='weight') }}">Weight{% if sort_by == 'weight' %} ▲{% endif %}</a></th>
       <th>Mechanics</th>
+      <th><a href="{{ url_for(request.endpoint, sort_by='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
       <th>Expansion?</th>
-      <th>Notes</th>
       <th>Actions</th>
     </tr>
     {% for game in games %}
     <tr>
-      <td>{{ game.ID }}</td>
       <td>{{ game.Title }}</td>
       <td>{{ game.Publisher }}</td>
       <td>{{ game.Designer }}</td>
       <td>{{ game.MinPlayers }}–{{ game.MaxPlayers }}</td>
       <td>{{ game.Weight }}</td>
       <td>{{ game.Mechanics }}</td>
-      <td>{{ game.IsExpansion }}</td>
       <td>{{ game.Notes }}</td>
+      <td>{{ game.IsExpansion }}</td>
       <td><a href="{{ url_for('edit', title=game.Title) }}">Edit</a></td>
     </tr>
     {% endfor %}

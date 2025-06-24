@@ -6,7 +6,6 @@ from werkzeug.utils import secure_filename
 import requests
 import xml.etree.ElementTree as ET
 from gdrive_helper import download_tsv_from_gdrive, upload_tsv_to_gdrive
-import base64
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -152,15 +151,29 @@ def get_bgg_game_details(game_id):
         "Notes": notes
     }
 
+def sort_games(games, sort_by):
+    key_funcs = {
+        'title': lambda g: g.get('Title', '').lower(),
+        'weight': lambda g: float(g.get('Weight', '0') or 0),
+        'designer': lambda g: g.get('Designer', '').lower(),
+        'publisher': lambda g: g.get('Publisher', '').lower(),
+        'notes': lambda g: g.get('Notes', '').lower(),
+    }
 
+    if sort_by in key_funcs:
+        return sorted(games, key=key_funcs[sort_by])
+    else:
+        return games  # return as-is for default order
 
 # --- Routes ---
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     download_tsv_from_gdrive()
     games = load_tsv()
-    return render_template('index.html', games=games)
+    sort_by = request.args.get('sort_by', None)  # None means no sort, default order
+    games = sort_games(games, sort_by)
+    return render_template('index.html', games=games, sort_by=sort_by)
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
@@ -279,10 +292,14 @@ def search():
             return True
 
         filtered = [g for g in games if matches(g)]
-        return render_template('index.html', games=filtered, searched=True)
+        sort_by = request.form.get('sort_by', None)
+        filtered = sort_games(filtered, sort_by)
+        return render_template('index.html', games=filtered, sort_by=sort_by)
 
-    # GET: show all
-    return render_template('index.html', games=games)
+    # GET request shows all games
+    sort_by = request.args.get('sort_by', None)
+    games = sort_games(games, sort_by)
+    return render_template('index.html', games=games, sort_by=sort_by)
 
 
 @app.route('/edit/<title>', methods=['GET', 'POST'])
