@@ -79,34 +79,41 @@ def extract_titles_from_image(image_path):
 
 
 
-def search_bgg_game(title):
-    """Search BGG for a game by title; return the game ID of an exact match or first result."""
+def search_bgg_games(title):
+    """Search BGG for board games by title. Return a list of potential matches."""
     url = "https://boardgamegeek.com/xmlapi2/search"
     params = {'query': title, 'type': 'boardgame'}
     r = requests.get(url, params=params)
+
     if r.status_code != 200:
-        return None
+        return []
+
     root = ET.fromstring(r.content)
     items = root.findall('item')
     if not items:
-        return None
+        return []
 
     title_lower = title.lower()
-    first_id = None
+    matches = []
 
     for item in items:
-        if first_id is None:
-            first_id = item.attrib.get('id')
-
-        # Find the 'name' element with type='primary'
+        game_id = item.attrib.get('id')
+        year_el = item.find("yearpublished")
+        year = year_el.attrib.get("value", "") if year_el is not None else ""
+        
         name_el = item.find("name[@type='primary']")
         if name_el is not None:
-            game_name = name_el.attrib.get('value', '').lower()
-            if game_name == title_lower:
-                return item.attrib.get('id')  # exact match found
+            game_title = name_el.attrib.get('value', '')
+            game_title_lower = game_title.lower()
 
-    # No exact match, return first result id
-    return first_id
+            # Match exact title or partial match containing search term
+            if title_lower in game_title_lower:
+                matches.append({
+                    'id': game_id,
+                    'title': game_title,
+                    'year': year
+                })
+    return matches
 
 def get_bgg_game_details(game_id):
     """Fetch detailed info for a BGG game by ID using get_values helper"""
@@ -235,51 +242,177 @@ def index():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
+    print('running upload_image')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+
     if 'image' not in request.files:
         flash("No image uploaded", "error")
         return redirect(url_for('index'))
+
     file = request.files['image']
     if file.filename == '':
         flash("No selected file", "error")
         return redirect(url_for('index'))
+
     filename = secure_filename(file.filename)
     temp_path = os.path.join(tempfile.gettempdir(), filename)
     file.save(temp_path)
 
-    # 1. Extract titles with Gemini
     titles = extract_titles_from_image(temp_path)
+    if not titles:
+        flash("No titles detected in image", "error")
+        return redirect(url_for('index'))
 
-    # 2. For each title, fetch BGG details
+    download_tsv_from_gdrive()
     games = load_tsv()
     existing_titles = {g['Title'].lower() for g in games}
-    newly_added = 0
-    for title in titles:
-        if title.lower() in existing_titles:
-            flash(f"{title} is already in the database", "info")
+
+    # Queue titles not already in the TSV
+    session['pending_titles'] = [t for t in titles if t.lower() not in existing_titles]
+    session['selected_games'] = []
+    session.modified = True
+
+    if not session['pending_titles']:
+        flash("All titles are already in the database.", "info")
+        return redirect(url_for('index'))
+
+    return redirect(url_for('process_next_title'))
+
+
+@app.route('/process-next-title', methods=['GET', 'POST'])
+def process_next_title():
+    print('running process_next_title')
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    pending_titles = session.get('pending_titles', [])
+    selected_games = session.get('selected_games', [])
+
+    if not pending_titles:
+        # When done, prepare 'pending_games' for confirmation
+        # Fetch details for all selected games
+        pending_games = []
+        for game_id in selected_games:
+            details = get_bgg_game_details(game_id)
+            if details:
+                pending_games.append({'original_title': details['Title'], 'matches': [details]})
+        session['pending_games'] = pending_games
+
+        # Clear pending_titles and selected_games
+        session.pop('pending_titles', None)
+        # session.pop('selected_games', None)
+        session.modified = True
+
+        return redirect(url_for('confirm_add_all'))
+
+    current_title = pending_titles[0]
+
+    if request.method == 'POST':
+        selected_game_id = request.form.get('selected_game_id')
+        if not selected_game_id:
+            flash("Please select a game to add.", "error")
+            # We'll re-render page below
+
         else:
-            game_id = search_bgg_game(title)
-            if game_id:
-                details = get_bgg_game_details(game_id)
-                if details:
-                    games.insert(0, details)
-                    flash(f"{title} added to the database", "success")
-                    newly_added += 1
-                else:
-                    flash(f"Details not found for {title}", "warning")
+            selected_games.append(selected_game_id)
+            pending_titles.pop(0)
+            session['pending_titles'] = pending_titles
+            session['selected_games'] = selected_games
+            session.modified = True
+
+            if pending_titles:
+                return redirect(url_for('process_next_title'))
             else:
-                flash(f"Could not find {title} on BoardGameGeek", "warning")
+                # Prepare 'pending_games' for confirmation immediately
+                pending_games = []
+                for game_id in selected_games:
+                    details = get_bgg_game_details(game_id)
+                    if details:
+                        pending_games.append({'original_title': details['Title'], 'matches': [details]})
+                session['pending_games'] = pending_games
 
-    save_tsv(games)
-    flash(f"Added {newly_added} new games from image", "success")
-    return redirect(url_for('index'))
+                # Clear pending_titles and selected_games since done
+                session.pop('pending_titles', None)
+                # session.pop('selected_games', None)
+                session.modified = True
 
+                return redirect(url_for('confirm_add_all'))
+
+    # GET request or POST with no selection: search matches
+    matches = search_bgg_games(current_title)
+
+    if not matches:
+        flash(f"Could not find '{current_title}' on BoardGameGeek.", "warning")
+        # skip this title, remove from pending and continue
+        pending_titles.pop(0)
+        session['pending_titles'] = pending_titles
+        session.modified = True
+        return redirect(url_for('process_next_title'))
+
+    if len(matches) == 1:
+        # Automatically select single match
+        selected_games.append(matches[0]['id'])
+        pending_titles.pop(0)
+        session['pending_titles'] = pending_titles
+        session['selected_games'] = selected_games
+        session.modified = True
+        return redirect(url_for('process_next_title'))
+
+    # Multiple matches: render selection page
+    return render_template('choose_many_games.html', matches=matches, original_title=current_title)
+
+@app.route('/confirm-add-all', methods=['GET', 'POST'])
+def confirm_add_all():
+    print('running confirm_add_all')
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    selected_game_ids = session.get('selected_games', [])
+    if not selected_game_ids:
+        flash("No games selected to add.", "info")
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        games = load_tsv()
+        existing_titles = {g['Title'].lower() for g in games}
+        newly_added = 0
+        for game_id in selected_game_ids:
+            details = get_bgg_game_details(game_id)
+            if details and details['Title'].lower() not in existing_titles:
+                games.insert(0, details)
+                newly_added += 1
+                existing_titles.add(details['Title'].lower())
+
+        save_tsv(games)
+        flash(f"Added {newly_added} new games to the database.", "success")
+
+        # Clear session data
+        session.pop('pending_titles', None)
+        session.pop('selected_games', None)
+        session.modified = True
+
+        return redirect(url_for('index'))
+
+    # GET: show all selected games details for final confirmation
+    detailed_games = []
+    for game_id in selected_game_ids:
+        details = get_bgg_game_details(game_id)
+        if details:
+            detailed_games.append(details)
+
+    return render_template('confirm_add_all.html', games=detailed_games)
 
 @app.route('/add-by-title', methods=['POST'])
 def add_by_title():
+    print('running add_by_title')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+
+    session.pop('pending_titles', None)
+    session.pop('selected_games', None)
+    session.pop('pending_games', None)
+
     title = request.form.get('title')
     if not title:
         flash("Please enter a game title", "error")
@@ -290,20 +423,50 @@ def add_by_title():
         flash(f"{title} is already in the database.", "info")
         return redirect(url_for('index'))
 
-    game_id = search_bgg_game(title)
-    if game_id is None:
-        flash(f"Could not find '{title}' on BoardGameGeek.", "error")
+    # Search BGG for multiple matches
+    matches = search_bgg_games(title)
+    if not matches:
+        flash(f"No matches found for '{title}' on BoardGameGeek.", "error")
         return redirect(url_for('index'))
 
-    details = get_bgg_game_details(game_id)
-    if details is None:
-        flash(f"Could not retrieve details for '{title}'.", "error")
+    # If only one match, add it directly
+    if len(matches) == 1:
+        return redirect(url_for('confirm_add', game_id=matches[0]['id']))
+
+    # Otherwise, show selection template
+    return render_template('choose_game.html', matches=matches, original_title=title)
+
+@app.route('/confirm-add', methods=['GET', 'POST'])
+def confirm_add():
+    print('running confirm_add')
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        selected_game_id = request.form.get('selected_game_id')
+        if not selected_game_id:
+            flash("Please select a game to add.", "error")
+            return redirect(url_for('index'))
+
+        details = get_bgg_game_details(selected_game_id)
+        if not details:
+            flash("Could not retrieve game details.", "error")
+            return redirect(url_for('index'))
+
+        games = load_tsv()
+        if any(g['Title'].lower() == details['Title'].lower() for g in games):
+            flash(f"'{details['Title']}' is already in the database.", "info")
+        else:
+            games.insert(0, details)
+            save_tsv(games)
+            flash(f"Added '{details['Title']}' to the database.", "success")
+
         return redirect(url_for('index'))
 
-    games.insert(0, details)
-    save_tsv(games)
-    flash(f"Added '{title}' to the database.", "success")
+    # For GET requests, just redirect to index (or change to show a form if you want)
+    flash("Nothing to confirm.", "warning")
     return redirect(url_for('index'))
+
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():

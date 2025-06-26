@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select Game Match</title>
+</head>
+<body>
+  <h1>Choose the correct game for: "{{ original_title }}"</h1>
+
+  <form action="{{ url_for('confirm_add') }}" method="post">
+    <!-- Hidden field to track the original title -->
+    <input type="hidden" name="original_title" value="{{ original_title }}">
+
+    {% for match in matches %}
+      <div>
+        <input type="radio" name="selected_game_id" value="{{ match.id }}" id="game{{ loop.index }}" required>
+        <label for="game{{ loop.index }}">{{ match.title }}{% if match.year %} ({{ match.year }}){% endif %}</label>
+      </div>
+    {% endfor %}
+
+    <button type="submit">Add Selected Game</button>
+  </form>
+
+  <p><a href="{{ url_for('index') }}">Cancel</a></p>
+</body>
+</html>
