@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from gdrive_helper import download_tsv_from_gdrive, upload_tsv_to_gdrive
 from google import genai
 from google.genai import types
+import string
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -77,7 +78,8 @@ def extract_titles_from_image(image_path):
 
     return titles
 
-
+def strip_punctuation(text):
+    return text.translate(str.maketrans('', '', string.punctuation))
 
 def search_bgg_games(title):
     """Search BGG for board games by title. Return a list of potential matches."""
@@ -93,7 +95,7 @@ def search_bgg_games(title):
     if not items:
         return []
 
-    title_lower = title.lower()
+    title_clean = strip_punctuation(title.lower())
     matches = []
 
     for item in items:
@@ -104,10 +106,10 @@ def search_bgg_games(title):
         name_el = item.find("name[@type='primary']")
         if name_el is not None:
             game_title = name_el.attrib.get('value', '')
-            game_title_lower = game_title.lower()
+            game_title_clean = strip_punctuation(game_title.lower())
 
             # Match exact title or partial match containing search term
-            if title_lower in game_title_lower:
+            if title_clean in game_title_clean:
                 matches.append({
                     'id': game_id,
                     'title': game_title,
@@ -431,7 +433,9 @@ def add_by_title():
 
     # If only one match, add it directly
     if len(matches) == 1:
-        return redirect(url_for('confirm_add', game_id=matches[0]['id']))
+        print(matches)
+        print(matches[0]['id'])
+        return redirect(url_for('confirm_add', selected_game_id=matches[0]['id']))
 
     # Otherwise, show selection template
     return render_template('choose_game.html', matches=matches, original_title=title)
@@ -444,6 +448,7 @@ def confirm_add():
 
     if request.method == 'POST':
         selected_game_id = request.form.get('selected_game_id')
+
         if not selected_game_id:
             flash("Please select a game to add.", "error")
             return redirect(url_for('index'))
@@ -463,9 +468,20 @@ def confirm_add():
 
         return redirect(url_for('index'))
 
-    # For GET requests, just redirect to index (or change to show a form if you want)
+    # GET request: maybe redirected here with ?selected_game_id=
+    selected_game_id = request.args.get('selected_game_id')
+    if selected_game_id:
+        details = get_bgg_game_details(selected_game_id)
+        if not details:
+            flash("Could not retrieve game details.", "error")
+            return redirect(url_for('index'))
+
+        return render_template('confirm_add.html', original_title=details)
+
+    # Default fallback
     flash("Nothing to confirm.", "warning")
     return redirect(url_for('index'))
+
 
 
 @app.route('/search', methods=['GET', 'POST'])
