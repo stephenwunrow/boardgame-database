@@ -122,7 +122,6 @@ def get_bgg_game_details(game_id):
     url = "https://boardgamegeek.com/xmlapi2/thing"
     params = {'id': game_id, 'stats': 1}
     r = requests.get(url, params=params)
-    print(r.text)
     if r.status_code != 200:
         return None
 
@@ -251,7 +250,6 @@ def index():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
-    print('running upload_image')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -291,7 +289,6 @@ def upload_image():
 
 @app.route('/process-next-title', methods=['GET', 'POST'])
 def process_next_title():
-    print('running process_next_title')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -373,7 +370,6 @@ def process_next_title():
 
 @app.route('/confirm-add-all', methods=['GET', 'POST'])
 def confirm_add_all():
-    print('running confirm_add_all')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -414,7 +410,6 @@ def confirm_add_all():
 
 @app.route('/add-by-title', methods=['POST'])
 def add_by_title():
-    print('running add_by_title')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -440,8 +435,6 @@ def add_by_title():
 
     # If only one match, add it directly
     if len(matches) == 1:
-        print(matches)
-        print(matches[0]['id'])
         return redirect(url_for('confirm_add', selected_game_id=matches[0]['id']))
 
     # Otherwise, show selection template
@@ -449,7 +442,6 @@ def add_by_title():
 
 @app.route('/confirm-add', methods=['GET', 'POST'])
 def confirm_add():
-    print('running confirm_add')
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
