@@ -37,6 +37,7 @@
     <input type="text" name="designer" placeholder="Designer">
     <input type="number" name="players" placeholder="e.g., 3">
     <input type="number" step="0.1" name="weight" placeholder="Weight (e.g., 2.5)">
+    <input type="number" name="playtime" placeholder="e.g., 3">
     <input type="text" name="mechanics" placeholder="Mechanics">
     <select name="is_expansion">
       <option value="">-- Expansion? --</option>
@@ -64,6 +65,7 @@
       <th><a href="{{ url_for('index', sort='designer') }}">Designer(s){% if sort_by == 'designer' %} ▲{% endif %}</a></th>
       <th>Players</th>
       <th><a href="{{ url_for('index', sort='weight') }}">Weight{% if sort_by == 'weight' %} ▲{% endif %}</a></th>
+      <th>Playtime</th>
       <th>Mechanics</th>
       <th><a href="{{ url_for('index', sort='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
       <th>Expansion?</th>
@@ -76,6 +78,7 @@
       <td>{{ game.Designer }}</td>
       <td>{{ game.MinPlayers }}–{{ game.MaxPlayers }}</td>
       <td>{{ game.Weight }}</td>
+      <td>{{ game.MinPlaytime }}–{{ game.MaxPlaytime }}</td>
       <td>{{ game.Mechanics }}</td>
       <td>{{ game.Notes }}</td>
       <td>{{ game.IsExpansion }}</td>

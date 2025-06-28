@@ -30,7 +30,7 @@ def load_tsv():
         return list(csv.DictReader(f, delimiter='\t'))
 
 def save_tsv(games):
-    fieldnames = ['ID', 'Title', 'MinPlayers', 'MaxPlayers', 'Publisher', 'Designer', 'Weight', 'Mechanics', 'IsExpansion', 'Notes']
+    fieldnames = ['ID', 'Title', 'MinPlayers', 'MaxPlayers', 'Publisher', 'Designer', 'Weight', 'MinPlaytime', 'MaxPlaytime', 'Mechanics', 'IsExpansion', 'Notes']
     with open(TSV_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
         writer.writeheader()
@@ -122,6 +122,7 @@ def get_bgg_game_details(game_id):
     url = "https://boardgamegeek.com/xmlapi2/thing"
     params = {'id': game_id, 'stats': 1}
     r = requests.get(url, params=params)
+    print(r.text)
     if r.status_code != 200:
         return None
 
@@ -160,6 +161,10 @@ def get_bgg_game_details(game_id):
     min_players = get_attr_value('minplayers')
     max_players = get_attr_value('maxplayers')
 
+    # Min/max playtime from value attribute
+    min_playtime = get_attr_value('minplaytime')
+    max_playtime = get_attr_value('maxplaytime')
+
     # Weight
     weight_el = item.find("statistics/ratings/averageweight")
     weight = weight_el.attrib['value'] if weight_el is not None else ''
@@ -175,6 +180,8 @@ def get_bgg_game_details(game_id):
         "Publisher": publisher,
         "Designer": designer_str,
         "Weight": weight,
+        "MinPlaytime": min_playtime,
+        "MaxPlaytime": max_playtime,
         "Mechanics": mechanics_str,
         "IsExpansion": is_expansion,
         "Notes": notes
@@ -500,6 +507,7 @@ def search():
         mechanics = request.form.get('mechanics', '').lower()
         notes = request.form.get('notes', '').lower()
         players = request.form.get('players', '')
+        playtime = request.form.get('playtime')
         weight = request.form.get('weight', '')
         is_expansion = request.form.get('is_expansion', '')
 
@@ -519,6 +527,15 @@ def search():
                     num = int(players)
                     game_min = int(game['MinPlayers']) if game['MinPlayers'] else None
                     game_max = int(game['MaxPlayers']) if game['MaxPlayers'] else None
+                    if (game_min is not None and num < game_min) or (game_max is not None and num > game_max):
+                        return False
+                except ValueError:
+                    return False  # ignore invalid input
+            if playtime:
+                try:
+                    num = int(playtime)
+                    game_min = int(game['MinPlaytime']) if game['MinPlaytime'] else None
+                    game_max = int(game['MaxPlaytime']) if game['MaxPlaytime'] else None
                     if (game_min is not None and num < game_min) or (game_max is not None and num > game_max):
                         return False
                 except ValueError:
@@ -578,6 +595,8 @@ def edit(title):
         game['MinPlayers'] = request.form.get('min_players', game['MinPlayers'])
         game['MaxPlayers'] = request.form.get('max_players', game['MaxPlayers'])
         game['Weight'] = request.form.get('weight', game['Weight'])
+        game['MinPlaytime'] = request.form.get('min_playtime', game['MinPlaytime'])
+        game['MaxPlaytime'] = request.form.get('max_playtime', game['MaxPlaytime'])
         game['IsExpansion'] = request.form.get('is_expansion', game['IsExpansion'])
         game['Notes'] = request.form.get('notes', game['Notes'])
 
