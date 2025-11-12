@@ -86,6 +86,7 @@ def search_bgg_games(title):
     url = "https://boardgamegeek.com/xmlapi2/search"
     params = {'query': title, 'type': 'boardgame'}
     r = requests.get(url, params=params)
+    print(r)
 
     if r.status_code != 200:
         return []
@@ -99,6 +100,7 @@ def search_bgg_games(title):
     matches = []
 
     for item in items:
+        print(item)
         game_id = item.attrib.get('id')
         year_el = item.find("yearpublished")
         year = year_el.attrib.get("value", "") if year_el is not None else ""
