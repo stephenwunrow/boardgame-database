@@ -6,6 +6,7 @@
 </head>
 <body>
   <h1>Board Game Database</h1>
+  <img src="{{ url_for('static', filename='images/BGG.png') }}" alt="Logo" style="height: 80px;">
 
   <!-- Flash messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}

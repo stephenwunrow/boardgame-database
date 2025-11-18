@@ -23,6 +23,8 @@ TSV_FILE = 'boardgames.tsv'
 # Gemini API Setup (You will plug your key here)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+BEARER_TOKEN = os.getenv("bearer_token")
+
 def load_tsv():
     if not os.path.exists(TSV_FILE):
         return []
@@ -85,7 +87,12 @@ def search_bgg_games(title):
     """Search BGG for board games by title. Return a list of potential matches."""
     url = "https://boardgamegeek.com/xmlapi2/search"
     params = {'query': title, 'type': 'boardgame'}
-    r = requests.get(url, params=params)
+
+    headers = {
+        "Authorization": f"Bearer {BEARER_TOKEN}"
+    }
+
+    r = requests.get(url, params=params, headers=headers)
 
     if r.status_code != 200:
         return []
@@ -121,7 +128,12 @@ def get_bgg_game_details(game_id):
     """Fetch detailed info for a BGG game by ID using get_values helper"""
     url = "https://boardgamegeek.com/xmlapi2/thing"
     params = {'id': game_id, 'stats': 1}
-    r = requests.get(url, params=params)
+
+    headers = {
+        "Authorization": f"Bearer {BEARER_TOKEN}"
+    }
+
+    r = requests.get(url, params=params, headers=headers)
     if r.status_code != 200:
         return None
 
