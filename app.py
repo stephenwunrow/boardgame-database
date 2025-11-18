@@ -106,6 +106,7 @@ def search_bgg_games(title):
     matches = []
 
     for item in items:
+        print(item)
         game_id = item.attrib.get('id')
         year_el = item.find("yearpublished")
         year = year_el.attrib.get("value", "") if year_el is not None else ""
