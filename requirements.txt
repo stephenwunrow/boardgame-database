@@ -1,11 +1,13 @@
 annotated-types==0.7.0
 anyio==4.9.0
 blinker==1.9.0
+cachelib==0.13.0
 cachetools==5.5.2
 certifi==2025.6.15
 charset-normalizer==3.4.2
 click==8.2.1
 Flask==3.1.1
+Flask-Session==0.8.0
 google-api-core==2.25.1
 google-api-python-client==2.173.0
 google-auth==2.40.3
@@ -22,6 +24,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 lxml==5.4.0
 MarkupSafe==3.0.2
+msgspec==0.20.0
 packaging==25.0
 proto-plus==1.26.1
 protobuf==6.31.1
