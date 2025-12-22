@@ -2,6 +2,7 @@ import os
 import csv
 import tempfile
 from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask_session import Session
 import json
 from werkzeug.utils import secure_filename
 import requests
@@ -213,6 +214,17 @@ def sort_games(games, sort_by):
     else:
         return games  # return as-is for default order
 
+# --- Session ---
+
+app.config['SECRET_KEY'] = 'your-existing-secret-key'
+
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_DIR'] = './flask_session'  # folder will be created
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+
+Session(app)
+
 # --- Routes ---
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -236,13 +248,13 @@ def logout():
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    download_tsv_from_gdrive()
     sort_by = request.args.get('sort')
 
     if 'search_results' in session:
         games = json.loads(session['search_results'])  # load filtered games
         searched = True
     else:
+        download_tsv_from_gdrive()
         games = load_tsv()
         searched = False
 
@@ -666,4 +678,4 @@ def search_by_image():
     return render_template('index.html', games=results, searched=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+        app.run(host="0.0.0.0", port=5001, debug=True)

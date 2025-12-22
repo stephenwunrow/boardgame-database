@@ -10,3 +10,4 @@ uploads/
 *.db
 *.sqlite3
 venv_clean
+/flask_session
