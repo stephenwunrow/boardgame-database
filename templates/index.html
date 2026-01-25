@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <title>Board Game Collection</title>
 </head>
+{% macro sort_link(label, field) %}
+  {% set is_active = (sort_by == field) %}
+  {% set next_dir = 'desc' if is_active and direction == 'asc' else 'asc' %}
+  <a href="{{ url_for('index', sort=field, dir=next_dir) }}">
+    {{ label }}
+    {% if is_active %}
+      {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+    {% endif %}
+  </a>
+{% endmacro %}
 <body>
   <h1>Board Game Database</h1>
   <img src="{{ url_for('static', filename='images/BGG.png') }}" alt="Logo" style="height: 80px;">
@@ -66,14 +76,66 @@
   {% endif %}
   <table border="1">
     <tr>
-      <th><a href="{{ url_for('index', sort='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='publisher') }}">Publisher{% if sort_by == 'publisher' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='designer') }}">Designer(s){% if sort_by == 'designer' %} ▲{% endif %}</a></th>
+      <th>
+        <a href="{{ url_for('index',
+                            sort='title',
+                            dir='desc' if sort_by == 'title' and direction == 'asc' else 'asc') }}">
+          Title
+          {% if sort_by == 'title' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='publisher',
+                            dir='desc' if sort_by == 'publisher' and direction == 'asc' else 'asc') }}">
+          Publisher
+          {% if sort_by == 'publisher' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='designer',
+                            dir='desc' if sort_by == 'designer' and direction == 'asc' else 'asc') }}">
+          Designer(s)
+          {% if sort_by == 'designer' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
       <th>Players</th>
-      <th><a href="{{ url_for('index', sort='weight') }}">Weight{% if sort_by == 'weight' %} ▲{% endif %}</a></th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='weight',
+                            dir='desc' if sort_by == 'weight' and direction == 'asc' else 'asc') }}">
+          Weight
+          {% if sort_by == 'weight' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
       <th>Playtime</th>
       <th>Mechanics</th>
-      <th><a href="{{ url_for('index', sort='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='notes',
+                            dir='desc' if sort_by == 'notes' and direction == 'asc' else 'asc') }}">
+          Notes
+          {% if sort_by == 'notes' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
       <th>Expansion?</th>
       <th>Actions</th>
     </tr>

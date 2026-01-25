@@ -248,7 +248,10 @@ def logout():
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    sort_by = request.args.get('sort')
+
+    sort_by = request.args.get('sort', 'title')
+    direction = request.args.get('dir', 'asc')
+    reverse = (direction == 'desc')
 
     if 'search_results' in session:
         games = json.loads(session['search_results'])  # load filtered games
@@ -257,22 +260,44 @@ def index():
         download_tsv_from_gdrive()
         games = load_tsv()
         searched = False
+
     count = len(games)
 
     if sort_by:
         if sort_by == 'title':
-            games.sort(key=lambda g: g['Title'].lower())
+            games.sort(
+                key=lambda g: g['Title'].lower() if g['Title'] else '',
+                reverse=reverse
+            )
         elif sort_by == 'weight':
-            games.sort(key=lambda g: float(g['Weight']) if g['Weight'] else 0)
+            games.sort(
+                key=lambda g: float(g['Weight']) if g['Weight'] else 0,
+                reverse=reverse
+            )
         elif sort_by == 'designer':
-            games.sort(key=lambda g: g['Designer'].lower() if g['Designer'] else '')
+            games.sort(
+                key=lambda g: g['Designer'].lower() if g['Designer'] else '',
+                reverse=reverse
+            )
         elif sort_by == 'publisher':
-            games.sort(key=lambda g: g['Publisher'].lower() if g['Publisher'] else '')
+            games.sort(
+                key=lambda g: g['Publisher'].lower() if g['Publisher'] else '',
+                reverse=reverse
+            )
         elif sort_by == 'notes':
-            games.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '')
+            games.sort(
+                key=lambda g: g['Notes'].lower() if g['Notes'] else '',
+                reverse=reverse
+            )
 
-    return render_template('index.html', games=games, searched=searched, sort_by=sort_by, count=count)
-
+    return render_template(
+        'index.html',
+        games=games,
+        searched=searched,
+        sort_by=sort_by,
+        direction=direction,
+        count=count
+    )
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
