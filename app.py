@@ -257,6 +257,7 @@ def index():
         download_tsv_from_gdrive()
         games = load_tsv()
         searched = False
+    count = len(games)
 
     if sort_by:
         if sort_by == 'title':
@@ -270,7 +271,7 @@ def index():
         elif sort_by == 'notes':
             games.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '')
 
-    return render_template('index.html', games=games, searched=searched, sort_by=sort_by)
+    return render_template('index.html', games=games, searched=searched, sort_by=sort_by, count=count)
 
 
 @app.route('/upload-image', methods=['POST'])
@@ -578,8 +579,9 @@ def search():
 
         # Store filtered results in session for consistency
         session['search_results'] = json.dumps(filtered)
+        count = len(filtered)
 
-        return render_template('index.html', games=filtered, sort_by=sort_by, searched=True)
+        return render_template('index.html', games=filtered, sort_by=sort_by, searched=True, count=count)
 
     # GET request shows all games
     sort_by = request.args.get('sort')
@@ -591,8 +593,10 @@ def search():
 
     if sort_by:
         games = sort_games(games, sort_by)
+    
+    count = len(games)
 
-    return render_template('index.html', games=games, sort_by=sort_by, searched=searched)
+    return render_template('index.html', games=games, sort_by=sort_by, searched=searched, count=count)
 
 @app.route('/edit/<title>', methods=['GET', 'POST'])
 def edit(title):
